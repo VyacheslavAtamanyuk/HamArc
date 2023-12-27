@@ -36,15 +36,15 @@ char* GetNextFiveteenBytes(std::fstream& archive, char* ptr) {
 void WriteFiles(std::fstream& archive, const std::vector<const char*>& origin, const Arguments& parse_arguments) {
     for (size_t i = 0; i < origin.size(); ++i) {
         for (size_t j = 0; j < origin[i][j]; ++j) {
-            archive.write(reinterpret_cast<char*>(origin[i][j]), 1);
+            archive << origin[i][j];
         }
 
         std::vector<uint8_t> hamming_code_file;
         size_t len_of_hamming_code_file = Hamming::HammingCode(hamming_code_file, parse_arguments.hamming_block, origin[i], true);
 
-        archive.write(reinterpret_cast<char*>(len_of_hamming_code_file), 8);
+        archive << len_of_hamming_code_file;
         for (size_t j = 0; j < hamming_code_file.size(); ++j) {
-            archive.write(reinterpret_cast<char*>(hamming_code_file[i]), 1);
+            archive << hamming_code_file[j];
         }
     }
 }
@@ -54,7 +54,7 @@ void CreateFile(char* filename, std::vector<uint8_t>& bytes) {
     new_file.open(filename, std::ios::out);
 
     for (size_t i = 0; i < bytes.size(); ++i) {
-        new_file.write(reinterpret_cast<char*>(bytes[i]), 1);
+        new_file << bytes[i];
     }
 
     new_file.close();
@@ -229,7 +229,7 @@ void Archive::Delete(const Arguments& parse_arguments) {
     archive.open(parse_arguments.archive_name, std::ios::out);
 
     for (size_t i = 0; i < new_data.size(); ++i) {
-        archive.write(reinterpret_cast<char*>(new_data[i]), 1);
+        archive << new_data[i];
     }
 
     archive.close();

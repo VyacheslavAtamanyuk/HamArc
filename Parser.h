@@ -5,14 +5,14 @@
 #include <string>
 
 struct Arguments {
-    const char* archive_name;
+    std::string archive_name;
 
     bool need_to_create = false;
     bool request_for_list = false;
     bool is_concatenate = false;
 
-    const char* first_archive_for_concatenate;
-    const char* second_archive_for_concatenate;
+    std::string first_archive_for_concatenate;
+    std::string second_archive_for_concatenate;
 
     bool need_to_add_something = false;
 
