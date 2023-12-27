@@ -13,6 +13,11 @@ const uint8_t kBytesInLenOfHammingCodeFile = 8;
 
 // Вспомогательные функции
 
+void WriteSizeT(std::fstream& archive, size_t& size) {
+    for (uint8_t i = 0; i < kBitsInByte; ++i) {
+        archive << ((size >> (kBitsInByte * (kBitsInByte - i - 1))) & 0xFF);
+    }
+}
 
 size_t GetNextEightBytes(std::fstream& archive) {
     char info;
@@ -35,14 +40,18 @@ char* GetNextFiveteenBytes(std::fstream& archive, char* ptr) {
 
 void WriteFiles(std::fstream& archive, const std::vector<const char*>& origin, const Arguments& parse_arguments) {
     for (size_t i = 0; i < origin.size(); ++i) {
-        for (size_t j = 0; j < origin[i][j]; ++j) {
+        for (uint8_t j = 0; j < kBytesInEachFilename - std::strlen(origin[i]); ++j) {
+            archive << 0;
+        }
+        for (uint8_t j = 0; j < std::strlen(origin[i]); ++j) {
             archive << origin[i][j];
         }
 
         std::vector<uint8_t> hamming_code_file;
         size_t len_of_hamming_code_file = Hamming::HammingCode(hamming_code_file, parse_arguments.hamming_block, origin[i], true);
 
-        archive << len_of_hamming_code_file;
+        WriteSizeT(archive, len_of_hamming_code_file);
+
         for (size_t j = 0; j < hamming_code_file.size(); ++j) {
             archive << hamming_code_file[j];
         }
