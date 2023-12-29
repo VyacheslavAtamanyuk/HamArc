@@ -60,8 +60,6 @@ void WriteFilenameOrFileToArchive(std::fstream& archive, const std::vector<const
 
     size_t hamming_code_container_len = Hamming::HammingCode(hamming_code_container, parse_arguments.hamming_block, origin[ind], container_for_hamming_code_object_len, false, false, true);
 
-    std::cout << hamming_code_object_len;
-
     for (size_t j = 0; j < hamming_code_container_len; ++j) {
         archive << hamming_code_container[j];
     }
@@ -73,6 +71,7 @@ void WriteFilenameOrFileToArchive(std::fstream& archive, const std::vector<const
 
 void WriteFilesToArchive(std::fstream& archive, const std::vector<const char*>& origin, const Arguments& parse_arguments) {
     for (size_t i = 0; i < origin.size(); ++i) {
+        WriteFilenameOrFileToArchive(archive, origin, parse_arguments, i, false, true);
         WriteFilenameOrFileToArchive(archive, origin, parse_arguments, i, true, false);
     }
 }
