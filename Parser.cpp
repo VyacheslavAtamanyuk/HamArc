@@ -8,15 +8,9 @@ Arguments Parse(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         if (std::strcmp(argv[i], "-f") == 0 || std::strncmp(argv[i], "--file=", 7) == 0) {
             if (std::strcmp(argv[i], "-f") == 0) {
-                std::string filename = argv[i+1];
-                filename += ".haf";
-
-                args_for_archive.archive_name = filename;
+                args_for_archive.archive_name = std::string(argv[i+1]) + ".haf";
             } else if (std::strncmp(argv[i], "--file=", 7) == 0) {
-                std::string filename = argv[i] + 7;
-                filename += ".haf";
-
-                args_for_archive.archive_name = filename;
+                args_for_archive.archive_name = std::string(argv[i] + 7) + ".haf";
             }
         }
         if (std::strcmp(argv[i], "-с") == 0 || std::strcmp(argv[i], "--create") == 0) {
@@ -27,14 +21,8 @@ Arguments Parse(int argc, char** argv) {
         }
         if (std::strcmp(argv[i], "-A") == 0 || std::strcmp(argv[i], "--concatenate") == 0) {
             args_for_archive.is_concatenate = true;
-
-            std::string first_archive = argv[i + 1];
-            first_archive += ".haf";
-            args_for_archive.first_archive_for_concatenate = first_archive;
-
-            std::string second_archive = argv[i + 2];
-            second_archive += ".haf";
-            args_for_archive.second_archive_for_concatenate = second_archive;
+            args_for_archive.first_archive_for_concatenate = std::string(argv[i + 1]) + ".haf";
+            args_for_archive.second_archive_for_concatenate = std::string(argv[i + 2]) + ".haf";
         }
         if (std::strcmp(argv[i], "-d") == 0 || std::strcmp(argv[i], "--delete") == 0) {
             args_for_archive.delete_files = true;
@@ -46,7 +34,7 @@ Arguments Parse(int argc, char** argv) {
                 args_for_archive.extract_all_files = true;
             } else {
                 int j = i+1;
-                while (argv[j][0] != '-' && j < argc) {
+                while (j < argc && argv[j][0] != '-') {
                     args_for_archive.extractable_files.push_back(argv[j]);
                     ++j;
                 }

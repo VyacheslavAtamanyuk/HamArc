@@ -4,7 +4,6 @@
 #include <iostream>
 
 const int kBitsCountInByte = 8;
-const int kSizeOfEachNameInBytes = 15;
 
 // Вспомогательные функции
 
@@ -12,25 +11,22 @@ bool ChangeControlBit(std::vector<bool>& bits, size_t i, size_t j, size_t degree
     bool new_control_bit;
     bool first_iter = true;
     for (size_t k = j; k < len - 1; ++k) {
-        if ((((k + 1) >> degree) & 1) == 1) {
-            if (first_iter) {
-                new_control_bit = bits[i * (block_for_coding + control_bits_count) + k];
-                first_iter = false;
-                continue;
-            }
-            new_control_bit ^= bits[i * (block_for_coding + control_bits_count) + k];
+        if ((((k + 1) >> degree) & 1) != 1) {
+            continue;
         }
+        if (first_iter) {
+            new_control_bit = bits[i * (block_for_coding + control_bits_count) + k];
+            first_iter = false;
+            continue;
+        }
+        new_control_bit ^= bits[i * (block_for_coding + control_bits_count) + k];
     }
     return new_control_bit;
 }
 
 bool ChangeExtraBit(std::vector<bool>& bits, size_t i, size_t block_for_coding, size_t control_bits_count, size_t len) {
-    bool new_extra_bit;
-    for (size_t j = 0; j < len - 1; ++j) {
-        if (j == 0) {
-            new_extra_bit = bits[i * (block_for_coding + control_bits_count)];
-            continue;
-        }
+    bool new_extra_bit = bits[i * (block_for_coding + control_bits_count)];
+    for (size_t j = 1; j < len - 1; ++j) {
         new_extra_bit ^= bits[i * (block_for_coding + control_bits_count) + j];
     }
     return new_extra_bit;
@@ -42,6 +38,12 @@ size_t Hamming::CalcControlBits(size_t hamming_block) {
         ++m;
     }
     return m;
+}
+
+void AddDefaultBits(std::vector<bool>& bits, char info) {
+    for (uint8_t i = 0; i < kBitsCountInByte; ++i) {
+        bits.push_back((info >> (kBitsCountInByte - i - 1)) & 1);
+    }
 }
 
 void AddNewBits(std::vector<bool>& old_bits, std::vector<bool>& new_bits, size_t len, size_t& current_bool) {
@@ -69,15 +71,6 @@ void SetControlAndExtraBits(std::vector<bool>& new_bits, size_t hamming_block, s
         ++degree;
     }
     new_bits[i * (hamming_block + control_bits_count) + len - 1] = ChangeExtraBit(new_bits, i, hamming_block, control_bits_count, len); // Устаналиваем дополнительный бит
-}
-
-void PadToFiveteenBits(std::vector<uint8_t>& data, std::vector<bool>& new_bits, bool create_file) {
-    if (!create_file) {
-        bool is_remainder = new_bits.size() % 8;
-        for (size_t i = 0; i < kSizeOfEachNameInBytes - (new_bits.size() / 8) - is_remainder; ++i) {
-            data.push_back(0);
-        }
-    }
 }
 
 void AddToResultingVector(std::vector<uint8_t>& data, std::vector<bool> new_bits, size_t start, size_t len) {
@@ -118,7 +111,7 @@ void DecodeThisSegment(std::vector<bool>& decoded_bits, std::vector<bool>& old_b
             bool new_control_bit = ChangeControlBit(old_bits, i, j, degree, hamming_block, control_bits_count, len);
             if (new_control_bit != old_bits[i * (hamming_block + control_bits_count) + j]) {
                 ++count_of_errors_while_decoding;
-                ind_error_bit |= (1 << j);
+                ind_error_bit |= (1 << degree);
             }
             power_of_two <<= 1;
             ++degree;
@@ -144,24 +137,23 @@ void DecodeThisSegment(std::vector<bool>& decoded_bits, std::vector<bool>& old_b
 
 // Кодирование и декодирование
 
-size_t Hamming::HammingCode(std::vector<uint8_t>& data, size_t hamming_block, const std::string& filename, bool create_file) {
+size_t Hamming::HammingCode(std::vector<uint8_t>& data, size_t hamming_block, const std::string& filename, uint8_t* size_container, bool is_coding_file, bool is_coding_filename, bool is_coding_size) {
     std::vector<bool> bits;
 
-    if (create_file) {
+    if (is_coding_file) {
         std::fstream file;
         file.open(filename, std::ios::in);
         char info;
         while (file.get(info)) {
-            for (int i = kBitsCountInByte - 1; i >= 0; --i) {
-                bits.push_back(info >> i);
-            }
+            AddDefaultBits(bits, info);
         }
-    } else {
-        size_t ptr = 0;
-        while (filename[ptr] != '\0') {
-            for (int i = kBitsCountInByte - 1; i >= 0; --i) {
-                bits.push_back(filename[ptr] >> i);
-            }
+    } else if (is_coding_filename){
+        for (size_t i = 0; i < filename.size(); ++i) {
+            AddDefaultBits(bits, filename[i]);
+        }
+    } else if (is_coding_size) {
+        for (uint8_t i = 0; i < kBitsCountInByte; ++i) {
+            AddDefaultBits(bits, size_container[i]);
         }
     }
 
@@ -186,27 +178,24 @@ size_t Hamming::HammingCode(std::vector<uint8_t>& data, size_t hamming_block, co
 
     // Установим в контрольные биты необходимые значения, а также посчитаем дополнительный контрольный бит в конце
 
-    for (size_t i = 0; i < operations_count; ++i) {
+    for (size_t i = 0; i < new_bits.size() / (hamming_block + control_bits_count); ++i) {
         SetControlAndExtraBits(new_bits, hamming_block, control_bits_count, hamming_block + control_bits_count, i);
     }
 
     // Установим в контрольные биты остатка необходимые значения, а также посчитаем дополнительный контрольный бит в конце
-    if (bits.size() % hamming_block != 0) {
+    if (new_bits.size() % (hamming_block + control_bits_count) != 0) {
         SetControlAndExtraBits(new_bits, hamming_block, control_bits_count, new_bits.size() % (hamming_block + control_bits_count), operations_count);
     }
 
-    // Добавим ведущие нули в том случае, если кодируется имя файла и его длина составляет меньше 15 символов. Если есть остаток, то добавляем
-    // на 1 меньше, за это отвечает is_remainder в функции PadToFiveteenBits
-
-    PadToFiveteenBits(data, new_bits, create_file);
-
-    // Если кодируется не имя файла, а сам файл, то заполним итоговый вектор чаров байтами
+    // Заполним итоговый вектор чаров байтами
 
     for (size_t i = 0; i < new_bits.size() / kBitsCountInByte; ++i) {
         AddToResultingVector(data, new_bits, i * kBitsCountInByte, kBitsCountInByte);
     }
 
-    AddToResultingVector(data, new_bits, (new_bits.size() / kBitsCountInByte) * kBitsCountInByte, new_bits.size() % kBitsCountInByte);
+    if (new_bits.size() % kBitsCountInByte != 0) {
+        AddToResultingVector(data, new_bits, (new_bits.size() / kBitsCountInByte) * kBitsCountInByte, new_bits.size() % kBitsCountInByte);
+    }
 
     bool is_remainder = new_bits.size() % kBitsCountInByte;
     return new_bits.size() / kBitsCountInByte + is_remainder;
@@ -216,12 +205,10 @@ size_t Hamming::HammingCode(std::vector<uint8_t>& data, size_t hamming_block, co
 // также можно распознавать, но в большинстве реализациях распознается 2 ошибки и исправляется одна. Будем считать, что этот бит является частью контрольных битов,
 // поэтому при подсчете контрольных битов сделаем + 1
 
-std::vector<uint8_t> Hamming::HammingDecode(std::vector<uint8_t>& data, size_t hamming_block) {
+void Hamming::HammingDecode(std::vector<uint8_t>& coded_data, std::vector<uint8_t>& result, size_t hamming_block) {
     std::vector<bool> old_bits;
-    for (size_t i = 0; i < data.size(); ++i) {
-        for (size_t j = kBitsCountInByte - 1; j >= 0; --j) {
-            old_bits.push_back(data[i] >> j);
-        }
+    for (size_t i = 0; i < coded_data.size(); ++i) {
+        AddDefaultBits(old_bits, coded_data[i]);
     }
 
     size_t control_bits_count = CalcControlBits(hamming_block) + 1;
@@ -233,15 +220,16 @@ std::vector<uint8_t> Hamming::HammingDecode(std::vector<uint8_t>& data, size_t h
         DecodeThisSegment(decoded_bits, old_bits, hamming_block, control_bits_count, i, hamming_block + control_bits_count);
     }
 
-    DecodeThisSegment(decoded_bits, old_bits, hamming_block, control_bits_count, operations_count, old_bits.size() % (hamming_block + control_bits_count));
+    if (old_bits.size() % (hamming_block + control_bits_count) != 0) {
+        DecodeThisSegment(decoded_bits, old_bits, hamming_block, control_bits_count, operations_count, old_bits.size() % (hamming_block + control_bits_count));
+    }
 
     //Преобразуем булевый вектор в вектор чаров;
-    std::vector<uint8_t> result;
     for (size_t i = 0; i < decoded_bits.size() / kBitsCountInByte; ++i) {
         AddToResultingVector(result, decoded_bits, i * kBitsCountInByte, kBitsCountInByte);
     }
 
-    AddToResultingVector(result, decoded_bits, (decoded_bits.size() / kBitsCountInByte) * kBitsCountInByte, decoded_bits.size() % kBitsCountInByte);
-
-    return result;
+    if (decoded_bits.size() % kBitsCountInByte != 0) {
+        AddToResultingVector(result, decoded_bits, (decoded_bits.size() / kBitsCountInByte) * kBitsCountInByte, decoded_bits.size() % kBitsCountInByte);
+    }
 }

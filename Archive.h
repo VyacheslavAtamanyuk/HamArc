@@ -14,6 +14,6 @@ public:
     static void Delete(const Arguments& parse_arguments);
 };
 
-void AnaliseArgs(const Arguments& parse_args);
+void AnalyzeArgs(const Arguments& parse_args);
 
 #endif //LABWORK6_ARCHIVE_H
