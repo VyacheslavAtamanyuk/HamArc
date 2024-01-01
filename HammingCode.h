@@ -8,8 +8,8 @@
 class Hamming {
 public:
     static size_t CalcControlBits(size_t hamming_block);
-    static size_t HammingCode(std::vector<uint8_t>& data, size_t hamming_block, const std::string& file, uint8_t* size_container, bool is_coding_file, bool is_coding_filename, bool is_coding_size);
-    static void HammingDecode(std::vector<uint8_t>& coded_data, std::vector<uint8_t>& decoded_data, size_t hamming_block);
+    static void HammingCode(std::vector<bool>& default_bits, std::vector<bool>& coded_bits, size_t hamming_block);
+    static void HammingDecode(std::vector<bool>& coded_bits, std::vector<uint8_t>& decoded_bytes, size_t hamming_block);
 };
 
 #endif //LABWORK6_HAMMINGCODE_H
