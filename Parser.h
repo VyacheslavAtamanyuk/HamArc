@@ -8,7 +8,7 @@ struct Arguments {
     std::string archive_name;
 
     bool need_to_create = false;
-    bool request_for_list = false;
+    bool is_show_list = false;
     bool is_concatenate = false;
 
     std::string first_archive_for_concatenate;
@@ -19,10 +19,10 @@ struct Arguments {
     std::vector<const char*> initialize_file_names;
     std::vector<const char*> append_file_names;
 
-    bool delete_files = false;
+    bool is_delete = false;
     std::vector<const char*> deletable_files;
 
-    bool extract = false;
+    bool is_extract = false;
     bool extract_all_files = false;
     std::vector<const char*> extractable_files;
 
