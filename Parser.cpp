@@ -19,15 +19,15 @@ Arguments Parse(int argc, char** argv) {
         if (!std::strcmp(argv[i], "-f") || !std::strncmp(argv[i], "--file=", 7)) {
             if (!std::strcmp(argv[i], "-f")) {
                 args_for_archive.archive_name = std::string(argv[i + 1]) + ".haf";
-                SetElements(i + 1, argc, argv, args_for_archive.initialize_file_names);
+                SetElements(i + 1, argc, argv, args_for_archive.filenames_to_initialize);
             } else if (!std::strncmp(argv[i], "--file=", 7)) {
                 args_for_archive.archive_name = std::string(argv[i] + 7) + ".haf";
-                SetElements(i, argc, argv, args_for_archive.initialize_file_names);
+                SetElements(i, argc, argv, args_for_archive.filenames_to_initialize);
             }
         }
 
         if (!std::strcmp(argv[i], "-с") || !std::strcmp(argv[i], "--create")) {
-            args_for_archive.need_to_create = true;
+            args_for_archive.is_need_to_create = true;
         }
 
         if (!std::strcmp(argv[i], "-l") || !std::strcmp(argv[i], "--list")) {
@@ -36,8 +36,8 @@ Arguments Parse(int argc, char** argv) {
 
         if (!std::strcmp(argv[i], "-A") || !std::strcmp(argv[i], "--concatenate")) {
             args_for_archive.is_concatenate = true;
-            args_for_archive.first_archive_for_concatenate = std::string(argv[i + 1]) + ".haf";
-            args_for_archive.second_archive_for_concatenate = std::string(argv[i + 2]) + ".haf";
+            args_for_archive.first_archive_to_concatenate = std::string(argv[i + 1]) + ".haf";
+            args_for_archive.second_archive_to_concatenate = std::string(argv[i + 2]) + ".haf";
         }
 
         if (!std::strcmp(argv[i], "-d") || !std::strcmp(argv[i], "--delete")) {
@@ -50,16 +50,16 @@ Arguments Parse(int argc, char** argv) {
             args_for_archive.is_extract = true;
 
             if (i + 1 == argc || argv[i + 1][0] == '-') {
-                args_for_archive.extract_all_files = true;
+                args_for_archive.is_extract_all_files = true;
             } else {
                 SetElements(i, argc, argv, args_for_archive.extractable_files);
             }
         }
 
         if (!std::strcmp(argv[i], "-a") || !std::strcmp(argv[i], "--append")) {
-            args_for_archive.need_to_add_something = true;
+            args_for_archive.is_need_to_add_something = true;
 
-            SetElements(i, argc, argv, args_for_archive.append_file_names);
+            SetElements(i, argc, argv, args_for_archive.filenames_to_append);
         }
 
         if (!std::strcmp(argv[i], "hamming_block")) {

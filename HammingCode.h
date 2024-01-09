@@ -1,5 +1,4 @@
-#ifndef LABWORK6_HAMMINGCODE_H
-#define LABWORK6_HAMMINGCODE_H
+#pragma once
 
 #include <vector>
 #include <cstdint>
@@ -11,5 +10,3 @@ public:
     static void HammingCode(const std::vector<bool>& default_bits, std::vector<bool>& coded_bits, size_t hamming_block);
     static void HammingDecode(std::vector<bool>& coded_bits, std::vector<bool>& decoded_bits, size_t hamming_block);
 };
-
-#endif //LABWORK6_HAMMINGCODE_H
