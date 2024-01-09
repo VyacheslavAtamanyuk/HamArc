@@ -34,25 +34,7 @@ void DecodeAndEncode::SetCurrentRemainderInBytes(const std::vector<bool>& bits, 
 
 // Обновление остатка, возникающего при переводе закодированных / декодированных битов в байты
 
-void DecodeAndEncode::UpdateRemainderInDecodedBytes(std::vector<bool>& remainder_in_bytes) {
-    if (remainder_in_bytes.size() % kBitsInByte != 0) {
-        uint8_t how_much_is_left = remainder_in_bytes.size() % kBitsInByte;
-        uint8_t new_remainder[kBitsInByte];
-
-        for (uint8_t i = 0; i < how_much_is_left; ++i) {
-            new_remainder[i] = remainder_in_bytes[(remainder_in_bytes.size() / kBitsInByte) * kBitsInByte + i];
-        }
-        remainder_in_bytes.clear();
-
-        for (uint8_t i = 0; i < how_much_is_left; ++i) {
-            remainder_in_bytes.push_back(new_remainder[i]);
-        }
-    } else {
-        remainder_in_bytes.clear();
-    }
-}
-
-void DecodeAndEncode::UpdateRemainderInEncodedBytes(std::ofstream& archive, std::vector<bool>& remainder_in_bytes, bool is_it_end) {
+void DecodeAndEncode::UpdateRemainderInBytes(std::ofstream& archive, std::vector<bool>& remainder_in_bytes, bool is_it_encode_process, bool is_it_end) {
     if (remainder_in_bytes.size() % kBitsInByte != 0) {
         uint8_t how_much_is_left = remainder_in_bytes.size() % kBitsInByte;
         uint8_t new_remainder[kBitsInByte];
@@ -66,7 +48,7 @@ void DecodeAndEncode::UpdateRemainderInEncodedBytes(std::ofstream& archive, std:
             remainder_in_bytes.push_back(new_remainder[i]);
         }
 
-        if (is_it_end) {
+        if (is_it_encode_process && is_it_end) {
             uint8_t remember_this_size = remainder_in_bytes.size();
             for (size_t j = 0; j < kBitsInByte - remember_this_size; ++j) {
                 remainder_in_bytes.push_back(0); // Добавляем в конец нули в качестве паддинга до размера kBitsInyByte, чтобы поместить в байт (так удобнее декодировать)
@@ -119,7 +101,7 @@ void DecodeAndEncode::EncodeBlock(std::vector<bool>& encoded_bits, size_t hammin
 
 // Добавление декодированной / закодированной информации в соответствующие объекты
 
-void DecodeAndEncode::AddDecodedBitsToString(std::vector<bool>& decoded_bits, std::string& string_with_decoded_bytes, std::vector<bool>& remainder_in_bytes) {
+void DecodeAndEncode::AddDecodedBitsToString(std::vector<bool>& decoded_bits, std::string& string_with_decoded_bytes, std::vector<bool>& remainder_in_bytes, bool is_it_end) {
     SetCurrentRemainderInBytes(decoded_bits, remainder_in_bytes);
 
     for (size_t i = 0; i < (remainder_in_bytes.size() / kBitsInByte); ++i) {
@@ -130,10 +112,11 @@ void DecodeAndEncode::AddDecodedBitsToString(std::vector<bool>& decoded_bits, st
         string_with_decoded_bytes.push_back(info);
     }
 
-    UpdateRemainderInDecodedBytes(remainder_in_bytes);
+    std::ofstream not_archive;
+    UpdateRemainderInBytes(not_archive, remainder_in_bytes, false, is_it_end);
 }
 
-void DecodeAndEncode::AddDecodedBitsToSizeT(std::vector<bool>& decoded_bits, size_t& object_len, std::vector<bool>& remainder_in_bytes, uint8_t& insertable_idx) {
+void DecodeAndEncode::AddDecodedBitsToSizeT(std::vector<bool>& decoded_bits, size_t& object_len, std::vector<bool>& remainder_in_bytes, uint8_t& insertable_idx, bool is_it_end) {
     SetCurrentRemainderInBytes(decoded_bits, remainder_in_bytes);
 
     for (size_t i = 0; i < (remainder_in_bytes.size() / kBitsInByte); ++i) {
@@ -145,10 +128,11 @@ void DecodeAndEncode::AddDecodedBitsToSizeT(std::vector<bool>& decoded_bits, siz
         ++insertable_idx;
     }
 
-    UpdateRemainderInDecodedBytes(remainder_in_bytes);
+    std::ofstream not_archive;
+    UpdateRemainderInBytes(not_archive, remainder_in_bytes, false, is_it_end);
 }
 
-void DecodeAndEncode::AddDecodedBitsToFile(std::vector<bool>& decoded_bits, std::ofstream& file, std::vector<bool>& remainder_in_bytes) {
+void DecodeAndEncode::AddDecodedBitsToFile(std::vector<bool>& decoded_bits, std::ofstream& file, std::vector<bool>& remainder_in_bytes, bool is_it_end) {
     SetCurrentRemainderInBytes(decoded_bits, remainder_in_bytes);
 
     for (size_t i = 0; i < (remainder_in_bytes.size() / kBitsInByte); ++i) {
@@ -159,7 +143,8 @@ void DecodeAndEncode::AddDecodedBitsToFile(std::vector<bool>& decoded_bits, std:
         file << info;
     }
 
-    UpdateRemainderInDecodedBytes(remainder_in_bytes);
+    std::ofstream not_archive;
+    UpdateRemainderInBytes(not_archive, remainder_in_bytes, false, is_it_end);
 }
 
 void DecodeAndEncode::AddEncodedBitsToArchive(const std::vector<bool>& encoded_bits, std::ofstream& archive, std::vector<bool>& remainder_in_bytes, bool is_it_end) {
@@ -173,7 +158,7 @@ void DecodeAndEncode::AddEncodedBitsToArchive(const std::vector<bool>& encoded_b
         archive << info;
     }
 
-    UpdateRemainderInEncodedBytes(archive, remainder_in_bytes, is_it_end);
+    UpdateRemainderInBytes(archive, remainder_in_bytes, true, is_it_end);
 }
 
 // Итерирование по исходным файлам / архиву с дальнейшим кодированием / декодированием
@@ -186,7 +171,7 @@ void DecodeAndEncode::DecodeBytesAndPutToString(char info, size_t hamming_block,
         std::vector<bool> decoded_bits;
         DecodeBlock(decoded_bits, hamming_block, decode_tools);
 
-        AddDecodedBitsToString(decoded_bits, string_with_decoded_bytes, decode_tools.remainder_in_bytes);
+        AddDecodedBitsToString(decoded_bits, string_with_decoded_bytes, decode_tools.remainder_in_bytes, decode_tools.is_it_end);
 
         UpdateTools(hamming_block + Hamming::CalcControlBits(hamming_block) + 1, decode_tools);
     }
@@ -201,7 +186,7 @@ void DecodeAndEncode::DecodeBytesAndPutToSizeT(char info, size_t hamming_block, 
         std::vector<bool> decoded_bits;
         DecodeBlock(decoded_bits, hamming_block, decode_tools);
 
-        AddDecodedBitsToSizeT(decoded_bits, object_len, decode_tools.remainder_in_bytes, insertable_idx);
+        AddDecodedBitsToSizeT(decoded_bits, object_len, decode_tools.remainder_in_bytes, insertable_idx, decode_tools.is_it_end);
 
         UpdateTools(hamming_block + Hamming::CalcControlBits(hamming_block) + 1, decode_tools);
     }
@@ -216,7 +201,7 @@ void DecodeAndEncode::DecodeBytesAndPutToFile(char info, size_t hamming_block, s
         std::vector<bool> decoded_bits;
         DecodeBlock(decoded_bits, hamming_block, decode_tools);
 
-        AddDecodedBitsToFile(decoded_bits, file, decode_tools.remainder_in_bytes);
+        AddDecodedBitsToFile(decoded_bits, file, decode_tools.remainder_in_bytes, decode_tools.is_it_end);
 
         UpdateTools(hamming_block + Hamming::CalcControlBits(hamming_block) + 1, decode_tools);
     }
